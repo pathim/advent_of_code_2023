@@ -24,7 +24,7 @@ impl From<http_req::response::StatusCode> for Error {
     }
 }
 fn generate_path(year: i32, day: u32) -> std::path::PathBuf {
-    ["input", &year.to_string(), &day.to_string()]
+    ["input", &year.to_string(), &(day.to_string() + ".txt")]
         .iter()
         .collect()
 }
