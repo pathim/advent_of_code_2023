@@ -1,9 +1,40 @@
-use std::{fmt::Debug, num::ParseIntError, str::FromStr};
+use std::{fmt::Debug, num::ParseIntError, str::FromStr, ops::Range};
+
+trait RangeOps:Sized{
+    fn intersect(&self,other:&Self)->(Self,Self,Self);
+}
+
+impl<T:Ord+Copy> RangeOps for Range<T> {
+    fn intersect(&self,other:&Self)->(Self,Self,Self) {
+        let mut within_start=self.start;
+        let mut within_end=self.end;
+        let before=if other.start>=self.start{
+            within_start=other.start;
+            self.start..self.start
+        } else {
+            if other.end<=self.start{
+                return (other.clone(),self.start..self.start,self.end..self.end);
+            }
+            other.start..self.start
+        };
+        let after=if other.end<=self.end{
+            within_end=other.end;
+            self.end..self.end
+        }else{
+            if other.start>=self.end{
+                return (self.start..self.start,self.start..self.start,other.clone());
+            }
+            self.end..other.end
+        };
+        let within=within_start..within_end;
+        (before,within,after)
+    }
+}
 
 #[derive(Debug)]
 struct MapRange {
-    src: core::ops::Range<u64>,
-    dst: core::ops::Range<u64>,
+    src: Range<u64>,
+    dst: Range<u64>,
 }
 
 impl FromStr for MapRange {
@@ -22,7 +53,19 @@ impl FromStr for MapRange {
         Ok(Self { src, dst })
     }
 }
-
+impl MapRange {
+    fn do_map(&self, value:&Range<u64>) -> (Option<Range<u64>>, Vec<Range<u64>>){
+        let (before,within,after) = self.src.intersect(&value);
+        let rest=[before,after].iter().filter(|x|!x.is_empty()).cloned().collect();
+        let result=if !within.is_empty(){
+            Some((self.dst.start+(within.start-self.src.start))..(self.dst.start+(within.end-self.src.start)))
+        }else{
+            None
+        };
+        (result,rest)
+    }
+    
+}
 #[derive(Debug)]
 struct Map {
     ranges: Vec<MapRange>,
@@ -49,13 +92,26 @@ impl Map {
         Self { ranges }
     }
 
-    fn do_map(&self, value: u64) -> u64 {
-        for range in self.ranges.iter() {
-            if range.src.contains(&value) {
-                return range.dst.start + (value - range.src.start);
+    fn do_map(&self, value: Range<u64>) -> Vec<Range<u64>> {
+        let mut result=Vec::new();
+        let mut still_to_map=vec![value];
+        while !still_to_map.is_empty() {
+            let mut was_mapped=false;
+            let value=still_to_map.pop().unwrap();
+            for range in self.ranges.iter() {
+                let (mapped,mut rest)=range.do_map(&value);
+                if let Some(r)=mapped{
+                    result.push(r);
+                    still_to_map.append(&mut rest);
+                    was_mapped=true;
+                    break;
+                }
+            }
+            if !was_mapped{
+                result.push(value);
             }
         }
-        value
+        result
     }
 
     fn is_empty(&self) -> bool {
@@ -63,11 +119,12 @@ impl Map {
     }
 }
 
-fn chain_map(maps: &Vec<Map>, mut value: u64) -> u64 {
+fn chain_map(maps: &Vec<Map>, value: Range<u64>) -> u64 {
+    let mut value=vec![value];
     for m in maps {
-        value = m.do_map(value);
+        value = value.into_iter().map(|v| m.do_map(v)).flatten().collect();
     }
-    value
+    value.into_iter().map(|x|x.start).min().unwrap()
 }
 pub fn f(input: crate::AocInput) -> crate::AocResult {
     let mut lines = input.lines();
@@ -90,6 +147,7 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
         }
         maps.push(map);
     }
-    let res1 = seeds.iter().map(|&s| chain_map(&maps, s)).min().unwrap();
-    res1.into()
+    let res1 = seeds.iter().map(|&s| s..s+1).map(|s| chain_map(&maps, s)).min().unwrap();
+    let res2=seeds[..].chunks(2).map(|x| x[0]..x[0]+x[1]).map(|s| chain_map(&maps, s)).min().unwrap();
+    (res1,res2).into()
 }
