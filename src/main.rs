@@ -5,10 +5,11 @@ mod input;
 pub use aoc_result::AocResult;
 
 use clap::Parser;
+pub use input::AocInput;
 
-type AocFun = fn(std::fs::File) -> AocResult;
+type AocFun = fn(AocInput) -> AocResult;
 
-fn wrap_func(func: &AocFun, input: Result<std::fs::File, input::Error>) -> AocResult {
+fn wrap_func(func: &AocFun, input: Result<AocInput, input::Error>) -> AocResult {
     match input {
         Ok(input) => func(input),
         Err(error) => format!("{:?}", error).into(),

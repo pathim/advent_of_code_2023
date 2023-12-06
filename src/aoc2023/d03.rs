@@ -1,5 +1,3 @@
-use std::io::BufRead;
-
 fn get_signed<T>(v: &Vec<T>, index: isize) -> Option<&T> {
     if index < 0 {
         return None;
@@ -47,14 +45,8 @@ fn get_number(
     Some(res)
 }
 
-pub fn f(input: std::fs::File) -> crate::aoc_result::AocResult {
-    let input = std::io::BufReader::new(input);
-    let mut blueprint = Vec::new();
-    for line in input.lines() {
-        let line = line.unwrap();
-        blueprint.push(line.chars().collect::<Vec<_>>());
-    }
-    let blueprint = blueprint;
+pub fn f(input: crate::AocInput) -> crate::aoc_result::AocResult {
+    let blueprint = input.to_2d_array();
     let mut numbers_used = std::collections::HashSet::new();
     let mut res1 = 0;
     let mut res2 = 0;

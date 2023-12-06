@@ -1,7 +1,6 @@
-use std::io::BufRead;
+use crate::AocInput;
 
-pub fn f(input: std::fs::File) -> crate::aoc_result::AocResult {
-    let input = std::io::BufReader::new(input);
+pub fn f(input: AocInput) -> crate::AocResult {
     let mut res1 = 0;
     let mut res2 = 0;
     let number_names = vec![

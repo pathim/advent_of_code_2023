@@ -1,7 +1,6 @@
-use std::{collections::HashSet, io::BufRead};
+use std::collections::HashSet;
 
-pub fn f(input: std::fs::File) -> crate::aoc_result::AocResult {
-    let input = std::io::BufReader::new(input);
+pub fn f(input: crate::AocInput) -> crate::AocResult {
     let mut res1 = 0;
     let mut res2 = 0;
     let mut copies = std::collections::VecDeque::new();

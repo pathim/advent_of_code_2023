@@ -1,7 +1,4 @@
-use std::io::BufRead;
-
-pub fn f(input: std::fs::File) -> crate::aoc_result::AocResult {
-    let input = std::io::BufReader::new(input);
+pub fn f(input: crate::AocInput) -> crate::AocResult {
     let mut res1 = 0;
     let mut res2 = 0;
     for line in input.lines() {

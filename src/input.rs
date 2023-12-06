@@ -1,5 +1,6 @@
 use chrono::TimeZone;
 use ex::Wrapper;
+use std::io::BufRead;
 
 #[derive(Debug)]
 pub enum Error {
@@ -49,7 +50,7 @@ fn download_input(year: i32, day: u32) -> Result<(), Error> {
     }
     Ok(())
 }
-pub fn get_input(year: i32, day: u32) -> Result<std::fs::File, Error> {
+fn get_input(year: i32, day: u32) -> Result<std::fs::File, Error> {
     let path = generate_path(year, day);
     let file_in = ex::fs::File::open(&path);
     if file_in.is_ok() {
@@ -60,7 +61,7 @@ pub fn get_input(year: i32, day: u32) -> Result<std::fs::File, Error> {
     }
 }
 
-pub fn get_all_inputs(year: i32) -> impl Iterator<Item = Result<std::fs::File, Error>> {
+pub fn get_all_inputs(year: i32) -> impl Iterator<Item = Result<AocInput, Error>> {
     let aoc_today = chrono::Utc::now().with_timezone(&chrono_tz::EST);
     let aoc_start = chrono_tz::EST
         .with_ymd_and_hms(year, 12, 1, 0, 0, 0)
@@ -82,5 +83,22 @@ pub fn get_all_inputs(year: i32) -> impl Iterator<Item = Result<std::fs::File, E
             <= aoc_today
     });
 
-    available_days.map(move |d| get_input(year, d))
+    available_days.map(move |d| AocInput::try_new(year, d))
+}
+
+pub struct AocInput {
+    file: std::io::BufReader<std::fs::File>,
+}
+
+impl AocInput {
+    pub fn try_new(year: i32, day: u32) -> Result<Self, Error> {
+        let file = std::io::BufReader::new(get_input(year, day)?);
+        Ok(Self { file })
+    }
+    pub fn lines(self) -> impl Iterator<Item = std::io::Result<String>> {
+        self.file.lines()
+    }
+    pub fn to_2d_array(self) -> Vec<Vec<char>> {
+        self.lines().map(|l| l.unwrap().chars().collect()).collect()
+    }
 }
