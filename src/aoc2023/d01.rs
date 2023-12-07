@@ -3,7 +3,7 @@ use crate::AocInput;
 pub fn f(input: AocInput) -> crate::AocResult {
     let mut res1 = 0;
     let mut res2 = 0;
-    let number_names = vec![
+    let number_names = [
         "[0-9]", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
     ];
     let numbers_re = number_names.join("|");
