@@ -12,13 +12,24 @@ fn card_to_value(c: char) -> u64 {
     }
 }
 
-fn hand_to_value(cards: &[u64; 5]) -> u64 {
+fn hand_to_value(cards: &[u64; 5], joker: bool) -> u64 {
     let mut value = 0;
     let mut card_counts = [0; 15];
     for v in cards {
+        let v = if joker && *v == 11 { 1 } else { *v };
         value = value * 16 + v;
-        card_counts[*v as usize] += 1;
+        card_counts[v as usize] += 1;
     }
+
+    let jokers = card_counts[1];
+    card_counts[1] = 0;
+    let max_index = card_counts
+        .iter()
+        .enumerate()
+        .max_by_key(|x| x.1)
+        .map(|x| x.0)
+        .unwrap_or(0);
+    card_counts[max_index] += jokers;
 
     let pat_val = match card_counts.iter().max().unwrap() {
         5 => 6,
@@ -44,7 +55,8 @@ fn hand_to_value(cards: &[u64; 5]) -> u64 {
 }
 
 pub fn f(input: crate::AocInput) -> AocResult {
-    let mut plays = Vec::new();
+    let mut plays1 = Vec::new();
+    let mut plays2 = Vec::new();
     for line in input.lines() {
         let line = line.unwrap();
         let (hand_c, bid) = line.split_once(' ').unwrap();
@@ -53,14 +65,21 @@ pub fn f(input: crate::AocInput) -> AocResult {
             hand[i] = v;
         }
         let bid: u32 = bid.parse().unwrap();
-        plays.push((hand_to_value(&hand), bid, hand_c.to_owned(), hand.clone()));
+        plays1.push((hand_to_value(&hand, false), bid));
+        plays2.push((hand_to_value(&hand, true), bid));
     }
-    plays.sort_by_key(|x| x.0);
-    let res1: u64 = plays
+    plays1.sort_by_key(|x| x.0);
+    plays2.sort_by_key(|x| x.0);
+    let res1: u64 = plays1
         .iter()
         .enumerate()
-        .map(|(i, &(_, b, _, _))| (i as u64 + 1) * b as u64)
+        .map(|(i, &(_, b))| (i as u64 + 1) * b as u64)
+        .sum();
+    let res2: u64 = plays2
+        .iter()
+        .enumerate()
+        .map(|(i, &(_, b))| (i as u64 + 1) * b as u64)
         .sum();
 
-    res1.into()
+    (res1, res2).into()
 }
