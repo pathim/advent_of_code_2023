@@ -1,11 +1,11 @@
-fn get_signed<T>(v: &Vec<T>, index: isize) -> Option<&T> {
+fn get_signed<T>(v: &[T], index: isize) -> Option<&T> {
     if index < 0 {
         return None;
     }
     v.get(index as usize)
 }
 
-fn find_number_start(blueprint: &Vec<Vec<char>>, x: usize, y: usize) -> Option<usize> {
+fn find_number_start(blueprint: &[Vec<char>], x: usize, y: usize) -> Option<usize> {
     let line = blueprint.get(y)?;
     let mut start = None;
     let mut pos: isize = x as isize;
@@ -21,7 +21,7 @@ fn find_number_start(blueprint: &Vec<Vec<char>>, x: usize, y: usize) -> Option<u
 }
 
 fn get_number(
-    blueprint: &Vec<Vec<char>>,
+    blueprint: &[Vec<char>],
     x: usize,
     y: usize,
     numbers_used: &mut std::collections::HashSet<(usize, usize)>,
