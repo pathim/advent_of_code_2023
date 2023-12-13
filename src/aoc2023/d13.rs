@@ -1,4 +1,7 @@
-fn find_v_sym(v: &Vec<Vec<char>>) -> Option<usize> {
+fn count_diff(a: &[char], b: &[char]) -> usize {
+    a.iter().zip(b).filter(|(a, b)| **a != **b).count()
+}
+fn find_v_sym(v: &[Vec<char>]) -> Option<usize> {
     'outer: for a in 1..v.len() {
         for n in 0..a {
             if a + n >= v.len() {
@@ -12,11 +15,41 @@ fn find_v_sym(v: &Vec<Vec<char>>) -> Option<usize> {
     }
     None
 }
-fn get_col(v: &Vec<Vec<char>>, col: usize) -> Vec<char> {
+fn find_v_sym_smudge(v: &[Vec<char>]) -> Option<usize> {
+    'outer: for a in 1..v.len() {
+        let mut found_smudge = false;
+        for n in 0..a {
+            if a + n >= v.len() {
+                if found_smudge {
+                    return Some(a);
+                } else {
+                    continue 'outer;
+                };
+            }
+            let diff = count_diff(&v[a - n - 1], &v[a + n]);
+            if diff == 0 {
+                continue;
+            }
+            if diff == 1 {
+                if found_smudge {
+                    continue 'outer;
+                }
+                found_smudge = true;
+            } else {
+                continue 'outer;
+            }
+        }
+        if found_smudge {
+            return Some(a);
+        };
+    }
+    None
+}
+fn get_col(v: &[Vec<char>], col: usize) -> Vec<char> {
     v.iter().map(|x| x[col]).collect()
 }
 
-fn find_h_sym(v: &Vec<Vec<char>>) -> Option<usize> {
+fn find_h_sym(v: &[Vec<char>]) -> Option<usize> {
     'outer: for a in 1..v[0].len() {
         for n in 0..a {
             if a + n >= v[0].len() {
@@ -27,6 +60,36 @@ fn find_h_sym(v: &Vec<Vec<char>>) -> Option<usize> {
             }
         }
         return Some(a);
+    }
+    None
+}
+fn find_h_sym_smudge(v: &[Vec<char>]) -> Option<usize> {
+    'outer: for a in 1..v[0].len() {
+        let mut found_smudge = false;
+        for n in 0..a {
+            if a + n >= v[0].len() {
+                if found_smudge {
+                    return Some(a);
+                } else {
+                    continue 'outer;
+                };
+            }
+            let diff = count_diff(&get_col(v, a - n - 1), &get_col(v, a + n));
+            if diff == 0 {
+                continue;
+            }
+            if diff == 1 {
+                if found_smudge {
+                    continue 'outer;
+                }
+                found_smudge = true;
+            } else {
+                continue 'outer;
+            }
+        }
+        if found_smudge {
+            return Some(a);
+        };
     }
     None
 }
@@ -50,5 +113,11 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
         .map(|x| x.unwrap())
         .sum();
 
-    res1.into()
+    let res2: usize = maps
+        .iter()
+        .map(|m| find_h_sym_smudge(m).or_else(|| find_v_sym_smudge(m).map(|x| x * 100)))
+        .map(|x| x.unwrap())
+        .sum();
+
+    (res1, res2).into()
 }
