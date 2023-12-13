@@ -45,7 +45,7 @@ impl Pos {
     }
 }
 
-fn get_zoomed_tile(tilemap: &Vec<Vec<char>>, x: usize, y: usize) -> [char; 9] {
+fn get_zoomed_tile(tilemap: &[Vec<char>], x: usize, y: usize) -> [char; 9] {
     let mut res = [' '; 9];
     let mut n = 0;
     for dx in -1..2 {
@@ -90,10 +90,10 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
             let mut zoomed_line = Vec::new();
             for c in line {
                 for pc in zline * 3..(zline + 1) * 3 {
-                    zoomed_line.push(if let Some(cc) = pieces.get(&c) {
+                    zoomed_line.push(if let Some(cc) = pieces.get(c) {
                         cc.1[pc].into()
                     } else {
-                        c.clone()
+                        *c
                     });
                 }
             }

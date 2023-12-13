@@ -25,13 +25,13 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
         for j in i + 1..num_galaxies {
             let (x1, y1) = galaxies[i];
             let (x2, y2) = galaxies[j];
-            for row in y1.min(y2)..y1.max(y2) {
-                res1 += if row_empty[row] { 2 } else { 1 };
-                res2 += if row_empty[row] { 1_000_000 } else { 1 };
+            for row in row_empty.iter().take(y1.max(y2)).skip(y1.min(y2)) {
+                res1 += if *row { 2 } else { 1 };
+                res2 += if *row { 1_000_000 } else { 1 };
             }
-            for col in x1.min(x2)..x1.max(x2) {
-                res1 += if col_empty[col] { 2 } else { 1 };
-                res2 += if col_empty[col] { 1_000_000 } else { 1 };
+            for col in col_empty.iter().take(x1.max(x2)).skip(x1.min(x2)) {
+                res1 += if *col { 2 } else { 1 };
+                res2 += if *col { 1_000_000 } else { 1 };
             }
         }
     }

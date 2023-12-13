@@ -31,7 +31,7 @@ fn gcd(mut a: usize, mut b: usize) -> usize {
         b = a % b;
         a = t;
     }
-    return a;
+    a
 }
 
 pub fn f(input: crate::AocInput) -> crate::AocResult {

@@ -1,8 +1,9 @@
-fn extrapolate(data: &Vec<i64>) -> i64 {
+fn extrapolate(data: &[i64]) -> i64 {
     return if data.iter().all(|&x| x == 0) {
         0
     } else {
-        data[data.len() - 1] + extrapolate(&data[..].windows(2).map(|x| x[1] - x[0]).collect())
+        data[data.len() - 1]
+            + extrapolate(&data[..].windows(2).map(|x| x[1] - x[0]).collect::<Vec<_>>())
     };
 }
 
@@ -12,7 +13,7 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
     for mut x in input.lines().map(|x| x.unwrap()).map(|x| {
         x.split_ascii_whitespace()
             .map(|v| v.parse().unwrap())
-            .collect()
+            .collect::<Vec<_>>()
     }) {
         res1 += extrapolate(&x);
         x.reverse();
