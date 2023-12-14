@@ -99,6 +99,21 @@ impl AocInput {
         self.file.lines()
     }
     pub fn to_2d_array(self) -> Vec<Vec<char>> {
-        self.lines().map(|l| l.unwrap().chars().collect()).collect()
+        self.to_2d_array_finding(|_| false).0
+    }
+    pub fn to_2d_array_finding(self, p: fn(char) -> bool) -> (Vec<Vec<char>>, Vec<(usize, usize)>) {
+        let mut found = Vec::new();
+        let mut res = Vec::new();
+        for (y, l) in self.lines().enumerate() {
+            let mut res_line = Vec::new();
+            for (x, c) in l.unwrap().chars().enumerate() {
+                if p(c) {
+                    found.push((x, y));
+                }
+                res_line.push(c);
+            }
+            res.push(res_line)
+        }
+        (res, found)
     }
 }
