@@ -42,16 +42,12 @@ impl Beam {
         }
     }
 }
-pub fn f(input: crate::AocInput) -> crate::AocResult {
-    let field = input.to_2d_array();
+
+fn count_energized(field: &[Vec<char>], start: Beam) -> usize {
     let width = field[0].len();
     let height = field.len();
     let mut visited = HashMap::new();
-    let mut beams = vec![Beam {
-        x: 0,
-        y: 0,
-        dir: Dir::Right,
-    }];
+    let mut beams = vec![start];
     while let Some(beam) = beams.pop() {
         if let Some(v) = visited.get_mut(&(beam.x, beam.y)) {
             if *v & (beam.dir as u8) != 0 {
@@ -90,11 +86,56 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
                 Dir::Up => [beam.with_dir(Dir::Left).step(width, height), None],
                 Dir::Down => [beam.with_dir(Dir::Right).step(width, height), None],
             },
-            c @ _ => panic!("Invalid char {}", c),
+            c => panic!("Invalid char {}", c),
         };
         beams.extend(new_beams.iter().filter_map(|x| *x));
     }
+    visited.len()
+}
 
-    let res1 = visited.len();
-    res1.into()
+pub fn f(input: crate::AocInput) -> crate::AocResult {
+    let field = input.to_2d_array();
+    let width = field[0].len();
+    let height = field.len();
+
+    let mut starts = Vec::new();
+    for x in 0..width {
+        starts.push(Beam {
+            x,
+            y: 0,
+            dir: Dir::Down,
+        });
+        starts.push(Beam {
+            x,
+            y: height - 1,
+            dir: Dir::Up,
+        });
+    }
+    for y in 0..height {
+        starts.push(Beam {
+            x: 0,
+            y,
+            dir: Dir::Right,
+        });
+        starts.push(Beam {
+            x: width - 1,
+            y,
+            dir: Dir::Left,
+        });
+    }
+
+    let res1 = count_energized(
+        &field,
+        Beam {
+            x: 0,
+            y: 0,
+            dir: Dir::Right,
+        },
+    );
+    let res2 = starts
+        .iter()
+        .map(|x| count_energized(&field, *x))
+        .max()
+        .unwrap();
+    (res1, res2).into()
 }
