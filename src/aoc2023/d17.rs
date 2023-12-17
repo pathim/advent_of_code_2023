@@ -70,7 +70,7 @@ impl Path {
             res.push(self.do_move((1, 0), field));
             res.push(self.do_move((-1, 0), field));
         }
-        res.into_iter().filter_map(|x| x).collect()
+        res.into_iter().flatten().collect()
     }
     fn get_next2(&self, field: &[Vec<u32>]) -> Vec<Path> {
         let mut res = Vec::new();
@@ -82,13 +82,13 @@ impl Path {
             res.push(self.do_move2((1, 0), field));
             res.push(self.do_move2((-1, 0), field));
         }
-        res.into_iter().filter_map(|x| x).collect()
+        res.into_iter().flatten().collect()
     }
 }
 
 impl PartialOrd for Path {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        other.cost.partial_cmp(&self.cost)
+        Some(self.cmp(other))
     }
 }
 
