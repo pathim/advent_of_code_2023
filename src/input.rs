@@ -116,4 +116,11 @@ impl AocInput {
         }
         (res, found)
     }
+    pub fn to_2d_array_mapped<T>(self, map: fn(char) -> T) -> Vec<Vec<T>> {
+        let mut res = Vec::new();
+        for l in self.lines() {
+            res.push(l.unwrap().chars().map(map).collect())
+        }
+        res
+    }
 }
