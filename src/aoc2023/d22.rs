@@ -1,10 +1,4 @@
-use std::{collections::HashSet, ops::RangeInclusive};
-
-fn abs_range(a: i64, b: i64) -> RangeInclusive<i64> {
-    let min = a.min(b);
-    let max = a.max(b);
-    a..=b
-}
+use std::collections::HashSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Pos {
@@ -23,22 +17,27 @@ impl Pos {
     }
 }
 
+#[derive(Debug, Clone)]
 struct Block {
     subblocks: Vec<Pos>,
+    has_dropped: bool,
 }
 
 impl Block {
     fn new(start: Pos, end: Pos) -> Self {
         let mut subblocks = Vec::new();
-        for x in abs_range(start.x, end.x) {
-            for y in abs_range(start.y, end.y) {
-                for z in abs_range(start.z, end.z) {
+        for x in start.x..=end.x {
+            for y in start.y..=end.y {
+                for z in start.z..=end.z {
                     subblocks.push(Pos { x, y, z });
                 }
             }
         }
         subblocks.sort_by_key(|a| a.z);
-        Self { subblocks }
+        Self {
+            subblocks,
+            has_dropped: false,
+        }
     }
     fn can_drop(&self, filled_space: &HashSet<Pos>) -> bool {
         let z_min = self.subblocks[0].z;
@@ -78,6 +77,24 @@ impl Block {
         }
     }
 }
+
+fn drop_all(blocks: &mut [Block], filled_space: &mut HashSet<Pos>) -> usize {
+    let mut has_dropped = true;
+    while has_dropped {
+        has_dropped = false;
+        for b in blocks.iter_mut() {
+            if b.drop(filled_space) {
+                has_dropped = true;
+                b.has_dropped = true;
+            }
+        }
+    }
+    let c = blocks.iter().filter(|x| x.has_dropped).count();
+    for b in blocks.iter_mut() {
+        b.has_dropped = false;
+    }
+    c
+}
 pub fn f(input: crate::AocInput) -> crate::AocResult {
     let re = regex::Regex::new("(\\d+),(\\d+),(\\d+)~(\\d+),(\\d+),(\\d+)").unwrap();
     let mut blocks = Vec::new();
@@ -101,28 +118,21 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
     let mut filled_space = HashSet::new();
 
     for b in &blocks {
-        for p in b.subblocks.iter() {
-            filled_space.insert(*p);
-        }
-    }
-    let mut has_dropped = true;
-    while has_dropped {
-        has_dropped = false;
-        for b in blocks.iter_mut() {
-            has_dropped |= b.drop(&mut filled_space);
-        }
-    }
-    let mut res1 = 0;
-    'outer: for b in blocks.iter() {
-        b.vanish(&mut filled_space);
-        for b2 in blocks.iter() {
-            if b2.can_drop(&filled_space) {
-                b.appear(&mut filled_space);
-                continue 'outer;
-            }
-        }
         b.appear(&mut filled_space);
-        res1 += 1;
     }
-    res1.into()
+    drop_all(&mut blocks, &mut filled_space);
+
+    let mut res1 = 0;
+    let mut res2 = 0;
+    for b in blocks.iter() {
+        let mut f = filled_space.clone();
+        let mut bs = blocks.clone();
+        b.vanish(&mut f);
+        let drop_count = drop_all(&mut bs, &mut f);
+        if drop_count == 0 {
+            res1 += 1;
+        }
+        res2 += drop_count;
+    }
+    (res1, res2).into()
 }
