@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 fn get_neighbors(x: usize, y: usize) -> [(usize, usize); 4] {
     [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]
 }
@@ -18,7 +20,7 @@ impl Edge {
     ) -> Self {
         let mut path = vec![start];
         let mut cur_pos = step;
-        while !nodes.contains(&cur_pos) && cur_pos.1 != input.len() - 1 {
+        while !nodes.contains(&cur_pos) && cur_pos.1 != input.len() - 1 && cur_pos.1 != 0 {
             path.push(cur_pos);
             let n = get_neighbors(cur_pos.0, cur_pos.1);
             for (nx, ny) in n {
@@ -44,24 +46,27 @@ fn find_paths(
     end: (usize, usize),
     edges: &[Edge],
     nodes: &[(usize, usize)],
-) -> Vec<Vec<Edge>> {
-    let mut res = vec![vec![]];
+    mut visited: Vec<(usize, usize)>,
+) -> usize {
     if start == end {
-        return res;
+        return 0;
     }
+    visited.push(start);
+    let mut longest = 0;
     for e in edges.iter().filter(|e| e.from == start) {
-        let mut paths = find_paths(e.to, end, edges, nodes);
-        for mut p in paths {
-            p.push(e.clone());
-            res.push(p);
+        if visited.contains(&e.to) {
+            continue;
         }
+        let paths = find_paths(e.to, end, edges, nodes, visited.clone());
+        longest = longest.max(paths + e.length)
     }
-    res
+    longest
 }
 pub fn f(input: crate::AocInput) -> crate::AocResult {
     let input = input.to_2d_array();
     let mut nodes = Vec::new();
-    let mut edges = Vec::new();
+    let mut edges1 = Vec::new();
+    let mut edges2 = Vec::new();
     let mut start = (0, 0);
     let mut end = (0, 0);
     for (y, l) in input.iter().enumerate() {
@@ -90,18 +95,20 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
     }
     for (x, y) in nodes.iter() {
         let n = get_neighbors(*x, *y);
-        for (nx, ny) in &n[..2] {
+        for (idx, (nx, ny)) in n.iter().enumerate() {
             if input[*ny][*nx] != '#' {
-                edges.push(Edge::new((*x, *y), (*nx, *ny), &input, &nodes));
+                let edge = Edge::new((*x, *y), (*nx, *ny), &input, &nodes);
+                if idx < 2 {
+                    edges1.push(edge.clone());
+                }
+                edges2.push(edge);
             }
         }
     }
-    edges.push(Edge::new(start, (start.0, start.1 + 1), &input, &nodes));
-    let paths = find_paths(start, end, &edges, &nodes);
-    let res1: usize = paths
-        .iter()
-        .map(|p| p.iter().map(|e| e.length).sum())
-        .max()
-        .unwrap();
-    res1.into()
+    let start_edge = Edge::new(start, (start.0, start.1 + 1), &input, &nodes);
+    edges1.push(start_edge.clone());
+    edges2.push(start_edge);
+    let res1 = find_paths(start, end, &edges1, &nodes, Vec::new());
+    let res2 = find_paths(start, end, &edges2, &nodes, Vec::new());
+    (res1, res2).into()
 }
