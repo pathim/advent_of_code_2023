@@ -1,22 +1,20 @@
-use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
 trait Module {
     fn connect_src<'a>(&mut self, module: String);
     fn connect_dst<'a>(&mut self, module: String);
     fn receive(&mut self, source: &str, value: bool) -> (bool, Vec<String>);
+    fn invals(&self) -> Option<HashMap<String, bool>>;
 }
 
 struct FlipFlop {
-    name: String,
     state: bool,
     targets: Vec<String>,
 }
 
 impl FlipFlop {
-    fn new(name: String) -> Self {
+    fn new() -> Self {
         FlipFlop {
-            name,
             state: false,
             targets: Vec::new(),
         }
@@ -24,7 +22,7 @@ impl FlipFlop {
 }
 
 impl Module for FlipFlop {
-    fn connect_src<'a>(&mut self, module: String) {}
+    fn connect_src<'a>(&mut self, _module: String) {}
 
     fn connect_dst<'a>(&mut self, module: String) {
         self.targets.push(module);
@@ -37,18 +35,19 @@ impl Module for FlipFlop {
         self.state = !self.state;
         (self.state, self.targets.clone())
     }
+    fn invals(&self) -> Option<HashMap<String, bool>> {
+        None
+    }
 }
 
 struct Conjunction {
-    name: String,
     targets: Vec<String>,
     source_vals: HashMap<String, bool>,
 }
 
 impl Conjunction {
-    fn new(name: String) -> Self {
+    fn new() -> Self {
         Conjunction {
-            name,
             targets: Vec::new(),
             source_vals: HashMap::new(),
         }
@@ -68,24 +67,25 @@ impl Module for Conjunction {
         let to_send = !self.source_vals.iter().all(|(_, x)| *x);
         (to_send, self.targets.clone())
     }
+    fn invals(&self) -> Option<HashMap<String, bool>> {
+        Some(self.source_vals.clone())
+    }
 }
 
 struct Broadcast {
-    name: String,
     targets: Vec<String>,
 }
 
 impl Broadcast {
-    fn new(name: String) -> Self {
+    fn new() -> Self {
         Broadcast {
-            name,
             targets: Vec::new(),
         }
     }
 }
 
 impl Module for Broadcast {
-    fn connect_src<'a>(&mut self, module: String) {}
+    fn connect_src<'a>(&mut self, _module: String) {}
 
     fn connect_dst<'a>(&mut self, module: String) {
         self.targets.push(module);
@@ -94,16 +94,22 @@ impl Module for Broadcast {
     fn receive(&mut self, _source: &str, value: bool) -> (bool, Vec<String>) {
         (value, self.targets.clone())
     }
+    fn invals(&self) -> Option<HashMap<String, bool>> {
+        None
+    }
 }
 
 struct Dummy;
 impl Module for Dummy {
-    fn connect_src<'a>(&mut self, module: String) {}
+    fn connect_src<'a>(&mut self, _module: String) {}
 
-    fn connect_dst<'a>(&mut self, module: String) {}
+    fn connect_dst<'a>(&mut self, _module: String) {}
 
-    fn receive(&mut self, source: &str, value: bool) -> (bool, Vec<String>) {
+    fn receive(&mut self, _source: &str, _value: bool) -> (bool, Vec<String>) {
         (false, vec![])
+    }
+    fn invals(&self) -> Option<HashMap<String, bool>> {
+        None
     }
 }
 
@@ -113,6 +119,15 @@ fn connect(modules: &mut HashMap<String, Box<dyn Module>>, from: &str, to: &str)
         modules.insert(to.to_owned(), Box::new(Dummy));
     }
     modules.get_mut(to).unwrap().connect_src(from.to_owned());
+}
+
+fn gcd(mut a: u64, mut b: u64) -> u64 {
+    while b != 0 {
+        let t = b;
+        b = a % b;
+        a = t;
+    }
+    a
 }
 
 pub fn f(input: crate::AocInput) -> crate::AocResult {
@@ -125,9 +140,9 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
         let mod_type = cs.next().unwrap();
         let from_name: String = cs.collect();
         let new_mod: Box<dyn Module> = match mod_type {
-            '%' => Box::new(FlipFlop::new(from_name.clone())),
-            '&' => Box::new(Conjunction::new(from_name.clone())),
-            _ => Box::new(Broadcast::new(from_name.clone())),
+            '%' => Box::new(FlipFlop::new()),
+            '&' => Box::new(Conjunction::new()),
+            _ => Box::new(Broadcast::new()),
         };
         modules.insert(from_name.clone(), new_mod);
         for target in to.split(", ") {
@@ -147,25 +162,16 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
     let mut counter_high = 0;
 
     let mut res1 = 0;
-    let mut res2 = 0;
 
-    'outer: for i in 0..1001 {
+    let mut offsets = HashMap::new();
+    let mut periods = HashMap::new();
+
+    'outer: for i in 0u64.. {
         if i == 1000 {
             res1 = counter_high * counter_low;
         }
-        if i % 100000 == 0 {
-            println!("{}", i);
-        }
         next_signals.push_back(("".to_owned(), false, "roadcaster".to_owned()));
-        let mut n = 0;
         while let Some((src, value, dst)) = next_signals.pop_front() {
-            if dst == "rx" && !value {
-                res2 = i;
-                break 'outer;
-            }
-            //println!("{} -{}- -> {}",src, value,dst);
-            n += 1;
-            //dbg!(&next_signals);
             if value {
                 counter_high += 1;
             } else {
@@ -176,11 +182,31 @@ pub fn f(input: crate::AocInput) -> crate::AocResult {
             for t in new_signals.1 {
                 next_signals.push_back((dst.to_owned(), s_val, t));
             }
-            //dbg!(&next_signals);
-            if n > 3 {
-                //panic!()
+            for (k, v) in modules[&rx_src].invals().unwrap() {
+                if !v {
+                    continue;
+                }
+                if let Some(i0) = offsets.get(&k) {
+                    if i == *i0 {
+                        break;
+                    }
+                    if !periods.contains_key(&k) {
+                        periods.insert(k, i - i0);
+                    }
+                } else {
+                    offsets.insert(k, i);
+                }
+            }
+            if periods.len() == modules[&rx_src].invals().unwrap().len() {
+                break 'outer;
             }
         }
+    }
+
+    let mut res2 = 1;
+
+    for p in periods.values() {
+        res2 = res2 * p / gcd(res2, *p);
     }
 
     (res1, res2).into()
